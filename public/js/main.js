@@ -75,7 +75,7 @@ function initApp(){
         let c1 = valueStore[key]
         c1.update(ela);
         if(c1.value > 390){
-          v1.value = 390;
+          c1.value = 390;
         }
       }
 
