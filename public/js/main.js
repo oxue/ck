@@ -1,8 +1,8 @@
 function initApp(){
   var keyMan = new Key();
 
-  encode = (id, c0) => {
-    return id + '/' + c0.value + '/' + c0.delta + '/' + c0.requestSequenceNumber;
+  encode = (c0) => {
+    return c0.key + '/' + c0.value + '/' + c0.delta + '/' + c0.requestSequenceNumber + '/' + c0.requestTimestamp;
   };
 
   var socket = io();
@@ -25,12 +25,12 @@ function initApp(){
   socket.on('id', (_id) => {
     console.log('id'+_id);
     id = _id;
-    valueStore['' + id] = new C0(_id, 100, 100);
+    valueStore['' + id] = new C0(_id+'', 100, 100);
   });
 
   socket.on('c0', (msg) => {
     let data = msg.split('/');
-    let id = data[0];
+    let idid = data[0];
     let value = parseFloat(data[1]);
     let delta = parseFloat(data[2]);
     const rsn = parseFloat(data[3]);
@@ -39,14 +39,22 @@ function initApp(){
 
     let c0 = valueStore['' + recd.key];
     if (!c0) {
-      c0 = new C0(id, value, delta, rsn);
-      valueStore['' + id] = c0;
+      c0 = new C0(idid, value, delta, rsn);
+      valueStore['' + idid] = c0;
     }
 
-    if(rsn < c0.requestSequenceNumber)
 
-    c0.value = value;
-    c0.delta = delta;
+    console.log(colors[id] + rsn + '/' + c0.requestSequenceNumber);
+
+
+    if(rsn >= c0.requestSequenceNumber){
+
+      c0.value = value;
+      c0.delta = delta;
+    }
+
+    
+    
   });
 
   var then = 0;
@@ -93,12 +101,13 @@ function initApp(){
         //prevNetUp = timestamp - (ela % 1000/30);
 
         if(myVar.deltaDirty){
-          requestSequenceNumber ++;
-          socket.emit('c0', encode(id, myVar));
+          myVar.requestSequenceNumber ++;
+          myVar.requestTimestamp = now;
+          socket.emit('c0', encode(myVar));
         }
       //}
 
-      $('#status-text')[0].innerHTML = requestSequenceNumber;
+      $('#status-text')[0].innerHTML = myVar.requestSequenceNumber;
     }
 
   }
