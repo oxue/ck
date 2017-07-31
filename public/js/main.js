@@ -14,7 +14,6 @@ function initApp(){
   var canvas = $('canvas')[0];
   var ctx = canvas.getContext('2d');
 
-  var myVar;
   var valueStore = {};
 
   var colors = ['blue', 'red', 'green', 'black', 'orange', 'purple'];
@@ -26,8 +25,7 @@ function initApp(){
   socket.on('id', (_id) => {
     console.log('id'+_id);
     id = _id;
-    myVar = new C0(_id, 100, 100);
-    valueStore['' + id] = myVar;
+    valueStore['' + id] = new C0(_id, 100, 100);
   });
 
   socket.on('c0', (msg) => {
@@ -66,6 +64,8 @@ function initApp(){
 
       if(id == -1) return;
       
+      myVar = valueStore[id+''];
+
       // input
       myVar.delta = 0;
       if(keyMan.isDown(Key.LEFT)) myVar.delta = -50;
