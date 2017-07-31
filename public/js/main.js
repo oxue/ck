@@ -1,10 +1,6 @@
 function initApp(){
   var keyMan = new Key();
 
-  encode = (c0) => {
-    return c0.key + '/' + c0.value + '/' + c0.delta + '/' + c0.requestSequenceNumber + '/' + c0.requestTimestamp;
-  };
-
   var socket = io();
   socket.connect('localhost:2000');
   var prevNetUp = 0;
@@ -103,7 +99,7 @@ function initApp(){
         if(myVar.deltaDirty){
           myVar.requestSequenceNumber ++;
           myVar.requestTimestamp = now;
-          socket.emit('c0', encode(myVar));
+          socket.emit('c0', C0.encode(myVar));
         }
       //}
 
