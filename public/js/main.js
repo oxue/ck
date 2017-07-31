@@ -14,7 +14,7 @@ function initApp(){
   var canvas = $('canvas')[0];
   var ctx = canvas.getContext('2d');
 
-  var myVar = new C0(0, 100, 100);
+  var myVar;
   var valueStore = {};
 
   var colors = ['blue', 'red', 'green', 'black', 'orange', 'purple'];
@@ -26,6 +26,7 @@ function initApp(){
   socket.on('id', (_id) => {
     console.log('id'+_id);
     id = _id;
+    myVar = new C0(_id, 100, 100);
     valueStore['' + id] = myVar;
   });
 
