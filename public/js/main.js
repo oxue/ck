@@ -10,7 +10,7 @@ function initApp(){
   var canvas = $('canvas')[0];
   var ctx = canvas.getContext('2d');
 
-  var valueStore = {};
+  var valueStore = new VariableStore();
 
   var colors = ['blue', 'red', 'green', 'black', 'orange', 'purple'];
   var id = -1;
@@ -21,7 +21,7 @@ function initApp(){
   socket.on('id', (_id) => {
     console.log('id'+_id);
     id = _id;
-    valueStore['' + id] = new C0(_id+'', 100, 100);
+    valueStore.setVariable(new C0(_id+'', 100, 100));
   });
 
   socket.on('c0', (msg) => {
@@ -33,20 +33,20 @@ function initApp(){
 
     var recd = C0.decode(msg);
 
-    let c0 = valueStore['' + recd.key];
+    let c0 = valueStore.getVariable('' + recd.key);
     if (!c0) {
       c0 = new C0(idid, value, delta, rsn);
-      valueStore['' + idid] = c0;
+      valueStore.setVariable(c0);
     }
 
-
-    console.log(colors[id] + rsn + '/' + c0.requestSequenceNumber);
+    console.log(`now: ${myTime} then: ${recd.requestTimestamp}`);
 
 
     if(rsn >= c0.requestSequenceNumber){
 
-      c0.value = value;
-      c0.delta = delta;
+      recd.update(myTime - recd.requestTimestamp);
+      c0.value = recd.value;
+      c0.delta = recd.delta;
     }
 
     
@@ -68,7 +68,7 @@ function initApp(){
 
       if(id == -1) return;
       
-      myVar = valueStore[id+''];
+      myVar = valueStore.getVariable(id+'');
 
       // input
       myVar.delta = 0;
@@ -76,8 +76,8 @@ function initApp(){
       if(keyMan.isDown(Key.RIGHT)) myVar.delta = 50;
 
       // update
-      for(key in valueStore){
-        let c0 = valueStore[key]
+      for(key in valueStore.variables){
+        let c0 = valueStore.getVariable(key);
         c0.update(ela);
         if(c0.value > 390){
           c0.value = 390;
@@ -86,10 +86,10 @@ function initApp(){
 
       // render
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for(key in valueStore){
-        let c0 = valueStore[key]
+      for(key in valueStore.variables){
+        let c0 = valueStore.getVariable(key);
         ctx.fillStyle = colors[parseInt(key, 10)];
-        ctx.fillRect(c0.value, 100, 10,10);
+        ctx.fillRect(c0.lerpedValue, 100, 10,10);
       }
 
       // netcode
