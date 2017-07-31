@@ -1,8 +1,8 @@
 function initApp(){
   var keyMan = new Key();
 
-  encode = (id, c1) => {
-    return id + '/' + c1.value + '/' + c1.delta + '/' + c1.requestSequenceNumber;
+  encode = (id, c0) => {
+    return id + '/' + c0.value + '/' + c0.delta + '/' + c0.requestSequenceNumber;
   };
 
   var socket = io();
@@ -14,7 +14,7 @@ function initApp(){
   var canvas = $('canvas')[0];
   var ctx = canvas.getContext('2d');
 
-  var myVar = new C1(0, 100, 100);
+  var myVar = new C0(0, 100, 100);
   var valueStore = {};
 
   var colors = ['blue', 'red', 'green', 'black', 'orange', 'purple'];
@@ -29,25 +29,25 @@ function initApp(){
     valueStore['' + id] = myVar;
   });
 
-  socket.on('c1', (msg) => {
+  socket.on('c0', (msg) => {
     let data = msg.split('/');
     let id = data[0];
     let value = parseFloat(data[1]);
     let delta = parseFloat(data[2]);
     const rsn = parseFloat(data[3]);
 
-    var recd = C1.decode(msg);
+    var recd = C0.decode(msg);
 
-    let c1 = valueStore['' + recd.key];
-    if (!c1) {
-      c1 = new C1(id, value, delta, rsn);
-      valueStore['' + id] = c1;
+    let c0 = valueStore['' + recd.key];
+    if (!c0) {
+      c0 = new C0(id, value, delta, rsn);
+      valueStore['' + id] = c0;
     }
 
-    if(rsn < c1.requestSequenceNumber)
+    if(rsn < c0.requestSequenceNumber)
 
-    c1.value = value;
-    c1.delta = delta;
+    c0.value = value;
+    c0.delta = delta;
   });
 
   var then = 0;
@@ -72,19 +72,19 @@ function initApp(){
 
       // update
       for(key in valueStore){
-        let c1 = valueStore[key]
-        c1.update(ela);
-        if(c1.value > 390){
-          c1.value = 390;
+        let c0 = valueStore[key]
+        c0.update(ela);
+        if(c0.value > 390){
+          c0.value = 390;
         }
       }
 
       // render
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for(key in valueStore){
-        let c1 = valueStore[key]
+        let c0 = valueStore[key]
         ctx.fillStyle = colors[parseInt(key, 10)];
-        ctx.fillRect(c1.value, 100, 10,10);
+        ctx.fillRect(c0.value, 100, 10,10);
       }
 
       // netcode
@@ -93,7 +93,7 @@ function initApp(){
 
         if(myVar.deltaDirty){
           requestSequenceNumber ++;
-          socket.emit('c1', encode(id, myVar));
+          socket.emit('c0', encode(id, myVar));
         }
       //}
 
