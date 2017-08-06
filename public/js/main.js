@@ -5,105 +5,168 @@ function initApp(){
   socket.connect('localhost:2000');
   var prevNetUp = 0;
 
-  const NETUPINTERVAL = 100;
+  const NETUPINTERVAL = 1000;
 
   var canvas = $('canvas')[0];
   var ctx = canvas.getContext('2d');
 
-  var valueStore = new VariableStore();
+  var valueStore = {};
 
   var colors = ['blue', 'red', 'green', 'black', 'orange', 'purple'];
-  var id = -1;
+  var myId = -1;
 
-  var myTime = 0;
+  let myRealTimestamp = 0;
   var requestSequenceNumber = 0;
+  let pingSyncId = 0;
+  let randomClockOffset = Math.random() * 2000;
+  let timeSyncCompensation = 0;
+  let ping = 0;
+  let speed = 400;
 
   socket.on('id', (_id) => {
     console.log('id'+_id);
-    id = _id;
-    valueStore.setVariable(new C0(_id+'', 100, 100));
+    myId = _id;
+    const key = _id+'';
+    valueStore[key] = new C0(key, 100);
+  });
+
+  socket.on('pingtest', (data) => {
+    if(pingSyncId == data.sid){
+      ping = (myRealTimestamp - data.timestamp) / 2;
+      let actual = data.serverTimestamp - ping;
+      if(pingSyncId == 0){
+        timeSyncCompensation = actual - data.timestamp;
+      }else{
+        timeSyncCompensation += actual - data.timestamp;
+      }
+    }
+    pingSyncId ++;
   });
 
   socket.on('c0', (msg) => {
-    let data = msg.split('/');
-    let idid = data[0];
-    let value = parseFloat(data[1]);
-    let delta = parseFloat(data[2]);
-    const rsn = parseFloat(data[3]);
+    var receivedC0 = C0.decode(msg);
 
-    var recd = C0.decode(msg);
-
-    let c0 = valueStore.getVariable('' + recd.key);
+    let c0 = valueStore[receivedC0.key + ""];
     if (!c0) {
-      c0 = new C0(idid, value, delta, rsn);
-      valueStore.setVariable(c0);
+      c0 = new C0(receivedC0.key);//, receivedC0.value, receivedC0.delta, receivedC0.requestSequenceNumber);
+      valueStore[receivedC0.key] = c0;
     }
 
-    console.log(`now: ${myTime} then: ${recd.requestTimestamp}`);
+    //console.log(`myRealTimestamp: ${myRealTimestamp} then: ${receivedC0.requestTimestamp}`);
 
+    //c0.buffer.push()
 
-    if(rsn >= c0.requestSequenceNumber){
+    // If this id belongs to me, then update it immediately
+    if(receivedC0.key === myId+'') {
+      if(receivedC0.requestSequenceNumber >= c0.requestSequenceNumber){
 
-      recd.update(myTime - recd.requestTimestamp);
-      c0.value = recd.value;
-      c0.delta = recd.delta;
+        receivedC0.update(myRealTimestamp - receivedC0.requestTimestamp);
+
+        // - receivedC0.requestTimestamp;
+
+        c0.value = receivedC0.value;
+        c0.delta = receivedC0.delta;
+      }
+    }else{ //else push it into the buffer for that var
+      c0.buffer.push({update: receivedC0, updateTime: myRealTimestamp, bufferTime: 0});
     }
 
-    
+
     
   });
 
   var then = 0;
 
+  var frameNum = 0;
+
   step = (timestamp) => {
     window.requestAnimationFrame(step.bind(this));
+    myRealTimestamp = timestamp + randomClockOffset + timeSyncCompensation;
 
-    now = timestamp;
-    myTime = now;
+    ela = myRealTimestamp - then;
 
-    ela = now - then;
+    // strict time synch update
+    if(myRealTimestamp - prevNetUp > NETUPINTERVAL){
+      prevNetUp = myRealTimestamp - (ela % 1000/30);
 
-    if(ela > 1000/30){
-      then = now - (ela % 1000/30);
+      socket.emit('pingtest', ({timestamp: myRealTimestamp, sid: pingSyncId}));
+    }
 
-      if(id == -1) return;
-      
-      myVar = valueStore.getVariable(id+'');
+    // buffered network updates
+      for(key in valueStore){
+        let c0 = valueStore[key];
+        if(c0.buffer.length){
+          // consume the update..
+          while(c0.buffer[0]){ //&& myRealTimestamp >= c0.buffer[0].updateTime + c0.buffer[0].bufferTime) {
+            let bufferHead = c0.buffer.shift();
+            console.log('pop ' +frameNum);
+            let receivedUpdate = bufferHead.update;
+            //console.log(bufferHead.bufferTime);
 
-      // input
-      myVar.delta = 0;
-      if(keyMan.isDown(Key.LEFT)) myVar.delta = -50;
-      if(keyMan.isDown(Key.RIGHT)) myVar.delta = 50;
+            //console.log('to up' + (myRealTimestamp - receivedUpdate.requestTimestamp - bufferHead.bufferTime  - ping * 2));
 
-      // update
-      for(key in valueStore.variables){
-        let c0 = valueStore.getVariable(key);
-        c0.update(ela);
-        if(c0.value > 390){
-          c0.value = 390;
+            //receivedUpdate.update(myRealTimestamp - (receivedUpdate.requestTimestamp + bufferHead.bufferTime + ping * 2));
+            c0.value = receivedUpdate.value;
+            c0.delta = receivedUpdate.delta;
+            c0.skipUpdate = true;
+          }
         }
       }
 
+    if(ela > 1000/30){
+      frameNum ++;
+      then = myRealTimestamp - (ela % 1000/30);
+
+      if(pingSyncId < 2) return;
+
+      if(myId == -1) return;
+      
+      myVar = valueStore[myId+''];
+
+      // input
+      let newDelta = 0;
+      if(myId == 1){
+        if(keyMan.isDown(Key.A)) newDelta = -speed;
+        if(keyMan.isDown(Key.D)) newDelta = speed;
+      }else{
+        if(keyMan.isDown(Key.LEFT)) newDelta = -speed;
+        if(keyMan.isDown(Key.RIGHT)) newDelta = speed;
+      }
+      myVar.setDelta(newDelta);
+
+      // netcode 
+      if(myVar.deltaDirty){
+        console.log("dort");
+        myVar.requestSequenceNumber ++;
+        myVar.requestTimestamp = myRealTimestamp;
+        console.log(frameNum);
+        socket.emit('c0', C0.encode(myVar));
+      }
+      
+      // update
+      for(key in valueStore){
+        let c0 = valueStore[key];
+        c0.update(ela);
+      }
+
+
+
       // render
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for(key in valueStore.variables){
-        let c0 = valueStore.getVariable(key);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+
+      for(key in valueStore){
+        let c0 = valueStore[key];
         ctx.fillStyle = colors[parseInt(key, 10)];
         ctx.fillRect(c0.lerpedValue, 100, 10,10);
       }
 
-      // netcode
-      //if(timestamp - prevNetUp > NETUPINTERVAL){
-        //prevNetUp = timestamp - (ela % 1000/30);
+      
 
-        if(myVar.deltaDirty){
-          myVar.requestSequenceNumber ++;
-          myVar.requestTimestamp = now;
-          socket.emit('c0', C0.encode(myVar));
-        }
-      //}
-
-      $('#status-text')[0].innerHTML = myVar.requestSequenceNumber;
+      $('#status-text')[0].innerHTML = myRealTimestamp;
+      //$('#status-text')[0].innerHTML = myVar.requestSequenceNumber;
     }
 
   }

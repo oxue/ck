@@ -22,6 +22,8 @@ Key.LEFT = 37;
 Key.UP = 38;
 Key.RIGHT = 39;
 Key.DOWN = 40;
+Key.A = 65;
+Key.D = 68;
 
 if(typeof(module) != 'undefined' && module.exports) {
   module.exports = Key;
