@@ -2,9 +2,15 @@ function initApp(){
   var keyMan = new Key();
 
   var testSocket = io();
+
+  let boxes = [];
+
   var cli = new cksync.Client(testSocket, 'localhost:2000', (clientId)=>{
-    const key = clientId + '';
-    cli.valueStore[key] = new cksync.C0(key, 100);
+    const keyX = clientId + '-xValue';
+    cli.valueStore[keyX] = new cksync.C0(keyX, 100 + 10 * clientId);
+    const keyY = clientId + '-yValue';
+    cli.valueStore[keyY] = new cksync.C0(keyY, 100);
+    
   });
 
   var canvas = $('canvas')[0];
@@ -34,7 +40,7 @@ function initApp(){
 
       if(!cli.isReady()) return;
       
-      myVar = cli.valueStore[cli.clientId+''];
+      myVar = cli.valueStore[cli.clientId+'-xValue'];
 
       // input
       let newDelta = 0;
