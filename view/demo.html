@@ -8,8 +8,8 @@
       let f1 = document.querySelectorAll('iframe')[0];
       let f2 = document.querySelectorAll('iframe')[1];
 
-      t1 = f1.contentDocument ? f1.contentDocument.querySelector('#status-text').innerHTML : 0;
-      t2 = f2.contentDocument ? f2.contentDocument.querySelector('#status-text').innerHTML : 0;
+      t1 = f1.contentDocument ? f1.contentDocument.querySelector('#status-text').innerHTML.split('/')[0] : 0;
+      t2 = f2.contentDocument ? f2.contentDocument.querySelector('#status-text').innerHTML.split('/')[0] : 0;
 
       document.querySelector('#time-difference').innerHTML = "time diff " + (t1-t2).toFixed(1) + 'ms';
     }, 1000);
