@@ -8,9 +8,6 @@ function initApp(){
   var cli = new cksync.Client(testSocket, 'localhost:2000', (clientId)=>{
     const keyX = clientId + '-xValue';
     cli.valueStore[keyX] = new cksync.C0(keyX, 100 + 10 * clientId);
-    const keyY = clientId + '-yValue';
-    cli.valueStore[keyY] = new cksync.C0(keyY, 100);
-    
   });
 
   var canvas = $('canvas')[0];
