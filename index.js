@@ -53,6 +53,12 @@ global.ckserver = ckserver;
   });
 });*/
 
+update = () => {
+  //ckserver.simulate()
+}
+
+setInterval(update, 1000/30);
+
 server.listen(2000, () => {
   console.log('listening on *:2000');
   repl.start({prompt:'shell> ', useGlobal:true});
