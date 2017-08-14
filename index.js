@@ -55,9 +55,14 @@ global.ckserver = ckserver;
 
 update = () => {
   //ckserver.simulate()
+  //console.log('update');
+  if(ckserver.users.length == 0){
+    ckserver.valueStore = {};
+  }
+  ckserver.updateAll();
 }
 
-setInterval(update, 1000/30);
+setInterval(update, 100);
 
 server.listen(2000, () => {
   console.log('listening on *:2000');
